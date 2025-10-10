@@ -165,7 +165,7 @@ export default function App() {
 
       <View style={styles.projectOverviewWrapper}>
         <View style={styles.projectOverview}>
-          <Text style={styles.projectOverviewTitle}>Project Overview</Text>
+          <Text style={styles.projectOverviewTitle}>PROJECT OVERVIEW</Text>
           <Text style={styles.projectOverviewText}>
           
           </Text>
