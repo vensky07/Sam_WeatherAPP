@@ -167,7 +167,7 @@ export default function App() {
         <View style={styles.projectOverview}>
           <Text style={styles.projectOverviewTitle}>Project Overview</Text>
           <Text style={styles.projectOverviewText}>
-            A high-level summary of project quality and performance indicators.
+          
           </Text>
         </View>
       </View>
