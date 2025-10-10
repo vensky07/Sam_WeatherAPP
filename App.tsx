@@ -1,186 +1,353 @@
-import React, { useState } from "react";
+import React from "react";
 import {
-  StyleSheet,
-  Text,
   View,
+  Text,
+  StyleSheet,
+  ScrollView,
   TouchableOpacity,
-  SafeAreaView,
-  Dimensions,
+  useWindowDimensions,
 } from "react-native";
 
-const { width } = Dimensions.get("window");
-const buttonSize = width / 4 - 15; // bouton adaptatif selon écran
+type MetricCardProps = {
+  title: string;
+  value: string;
+  subtitle?: string;
+  status?: "success" | "warning" | "error" | "neutral" | "info";
+  showBadge?: boolean;
+  badgeText?: string;
+  percentage?: number | null;
+};
 
-export default function App() {
-  const [display, setDisplay] = useState("0");
-  const [firstOperand, setFirstOperand] = useState<number | null>(null);
-  const [operator, setOperator] = useState<string | null>(null);
-  const [waitingForSecondOperand, setWaitingForSecondOperand] = useState(false);
-
-  const inputDigit = (digit: number) => {
-    if (waitingForSecondOperand) {
-      setDisplay(String(digit));
-      setWaitingForSecondOperand(false);
-    } else {
-      setDisplay(display === "0" ? String(digit) : display + digit);
-    }
-  };
-
-  const inputDecimal = () => {
-    if (waitingForSecondOperand) {
-      setDisplay("0,");
-      setWaitingForSecondOperand(false);
-      return;
-    }
-    if (!display.includes(",")) {
-      setDisplay(display + ",");
-    }
-  };
-
-  const clearDisplay = () => {
-    setDisplay("0");
-    setFirstOperand(null);
-    setOperator(null);
-    setWaitingForSecondOperand(false);
-  };
-
-  const handleBackspace = () => {
-    if (waitingForSecondOperand) return;
-    setDisplay(display.length === 1 ? "0" : display.slice(0, -1));
-  };
-
-  const handleOperator = (nextOperator: string) => {
-    const inputValue = parseFloat(display.replace(",", "."));
-
-    if (firstOperand === null) {
-      setFirstOperand(inputValue);
-    } else if (operator) {
-      const result = performCalculation(inputValue);
-      setDisplay(String(result));
-      setFirstOperand(result);
-    }
-
-    setWaitingForSecondOperand(true);
-    setOperator(nextOperator);
-  };
-
-  const performCalculation = (secondOperand: number) => {
-    if (firstOperand === null || operator === null) return secondOperand;
-
-    switch (operator) {
-      case "+":
-        return firstOperand + secondOperand;
-      case "-":
-        return firstOperand - secondOperand;
-      case "×":
-        return firstOperand * secondOperand;
-      case "÷":
-        return firstOperand / secondOperand;
+const MetricCard = ({
+  title,
+  value,
+  subtitle,
+  status = "neutral",
+  showBadge = false,
+  badgeText = "",
+  percentage = null,
+}: MetricCardProps) => {
+  const getStatusColor = () => {
+    switch (status) {
+      case "success":
+        return "#22C55E";
+      case "warning":
+        return "#EAB308";
+      case "error":
+        return "#EF4444";
       default:
-        return secondOperand;
+        return "#6B7280";
     }
   };
 
-  const handleEquals = () => {
-    if (firstOperand === null || !operator) return;
-    const result = performCalculation(parseFloat(display.replace(",", ".")));
-    setDisplay(String(result));
-    setFirstOperand(null);
-    setOperator(null);
-    setWaitingForSecondOperand(false);
+  const getStatusEmoji = () => {
+    switch (status) {
+      case "success":
+        return "✔";
+      case "warning":
+        return "⚠";
+      case "error":
+        return "✖";
+      case "info":
+        return "ℹ";
+      default:
+        return "●";
+    }
   };
-
-  const renderButton = (
-    label: string,
-    onPress: () => void,
-    style?: any,
-    textStyle?: any
-  ) => (
-    <TouchableOpacity style={[styles.button, style]} onPress={onPress}>
-      <Text style={[styles.buttonText, textStyle]}>{label}</Text>
-    </TouchableOpacity>
-  );
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Display */}
-      <View style={styles.display}>
-        <Text style={styles.displayText}>{display}</Text>
+    <TouchableOpacity
+      activeOpacity={0.9}
+      style={[styles.card, { borderColor: getStatusColor() }]}
+    >
+      <View style={styles.cardHeader}>
+        <Text style={styles.cardTitle}>{title}</Text>
+        <Text style={[styles.cardIcon, { color: getStatusColor() }]}>
+          {getStatusEmoji()}
+        </Text>
       </View>
 
-      {/* Buttons Grid */}
-      <View style={styles.buttons}>
-        {renderButton("C", clearDisplay, styles.btnClear, { color: "#E74C3C" })}
-        {renderButton("%", () => handleOperator("%"), styles.btnOp)}
-        {renderButton("⌫", handleBackspace, styles.btnOp)}
-        {renderButton("÷", () => handleOperator("÷"), styles.btnOp)}
-
-        {renderButton("7", () => inputDigit(7))}
-        {renderButton("8", () => inputDigit(8))}
-        {renderButton("9", () => inputDigit(9))}
-        {renderButton("×", () => handleOperator("×"), styles.btnOp)}
-
-        {renderButton("4", () => inputDigit(4))}
-        {renderButton("5", () => inputDigit(5))}
-        {renderButton("6", () => inputDigit(6))}
-        {renderButton("-", () => handleOperator("-"), styles.btnOp)}
-
-        {renderButton("1", () => inputDigit(1))}
-        {renderButton("2", () => inputDigit(2))}
-        {renderButton("3", () => inputDigit(3))}
-        {renderButton("+", () => handleOperator("+"), styles.btnOp)}
-
-        {renderButton("00", () => setDisplay(display + "00"))}
-        {renderButton("0", () => inputDigit(0))}
-        {renderButton(",", inputDecimal)}
-        {renderButton("=", handleEquals, styles.btnEqual)}
+      <View style={styles.cardValueRow}>
+        <Text style={[styles.cardValue, { color: getStatusColor() }]}>
+          {value}
+        </Text>
+        {percentage !== null && (
+          <Text style={styles.cardPercentage}>{percentage}%</Text>
+        )}
       </View>
-    </SafeAreaView>
+
+      {subtitle && <Text style={styles.cardSubtitle}>{subtitle}</Text>}
+
+      {showBadge && badgeText && (
+        <View
+          style={[
+            styles.badge,
+            {
+              backgroundColor: `${getStatusColor()}20`,
+              borderColor: getStatusColor(),
+            },
+          ]}
+        >
+          <Text style={[styles.badgeText, { color: getStatusColor() }]}>
+            {badgeText}
+          </Text>
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+};
+
+export default function App() {
+  const { width } = useWindowDimensions();
+
+  const metrics = [
+    {
+      title: "Security",
+      value: "0",
+      subtitle: "Open issues",
+      status: "success",
+      showBadge: true,
+      badgeText: "A",
+    },
+    {
+      title: "Reliability",
+      value: "0",
+      subtitle: "Open issues",
+      status: "success",
+      showBadge: true,
+      badgeText: "A",
+    },
+    {
+      title: "Maintainability",
+      value: "1",
+      subtitle: "Open issues",
+      status: "success",
+      showBadge: true,
+      badgeText: "A",
+    },
+    {
+      title: "Accepted issues",
+      value: "0",
+      subtitle: "Valid issues that were not fixed",
+      status: "neutral",
+    },
+    {
+      title: "Coverage",
+      value: "97.1",
+      subtitle: "On 552 lines to cover",
+      status: "success",
+    },
+    {
+      title: "Duplications",
+      value: "0.0",
+      subtitle: "On 27 lines",
+      status: "success",
+    },
+  ];
+
+  const numCols = width > 600 ? 2 : 1;
+  const padding = 20 * 2;
+  const spacing = 16 * (numCols - 1);
+  const cardWidth = (width - padding - spacing) / numCols;
+
+  return (
+    <View style={styles.mainContainer}>
+      <View style={styles.header}>
+        <View style={styles.logoContainer}>
+          <View style={styles.logoCircleOuter}>
+            <View style={styles.logoCircleInner}>
+              <Text style={styles.logoLetter}>S</Text>
+            </View>
+          </View>
+          <Text style={styles.logoText}>Sonar</Text>
+        </View>
+      </View>
+
+      <View style={styles.projectOverviewWrapper}>
+        <View style={styles.projectOverview}>
+          <Text style={styles.projectOverviewTitle}>Project Overview</Text>
+          <Text style={styles.projectOverviewText}>
+            A high-level summary of project quality and performance indicators.
+          </Text>
+        </View>
+      </View>
+
+      <ScrollView
+        style={styles.scrollArea}
+        contentContainerStyle={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.subtitleText}>
+          Resulting in more secure, reliable, and maintainable software
+        </Text>
+
+        <View
+          style={[
+            styles.grid,
+            {
+              flexDirection: numCols === 1 ? "column" : "row",
+              flexWrap: "wrap",
+            },
+          ]}
+        >
+          {metrics.map((metric, index) => (
+            <View key={index} style={[styles.cardWrapper, { width: cardWidth }]}>
+              <MetricCard {...(metric as MetricCardProps)} />
+            </View>
+          ))}
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
     flex: 1,
-    backgroundColor: "black", // fond noir
+    backgroundColor: "#3B0764",
   },
-  display: {
+  header: {
+    backgroundColor: "#3B0764",
+    paddingHorizontal: 20,
+    paddingTop: 50,
+    paddingBottom: 12,
+    alignItems: "flex-start",
+    borderBottomColor: "#5B21B6",
+    borderBottomWidth: 0.5,
+  },
+  logoContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  logoCircleOuter: {
+    width: 48,
+    height: 48,
+    backgroundColor: "#FFF",
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  logoCircleInner: {
+    width: 28,
+    height: 28,
+    backgroundColor: "#9333EA",
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  logoLetter: {
+    color: "#FFF",
+    fontWeight: "bold",
+    fontSize: 14,
+  },
+  logoText: {
+    color: "#FFF",
+    fontSize: 22,
+    fontWeight: "600",
+  },
+  projectOverviewWrapper: {
+    backgroundColor: "#3B0764",
+    padding: 5,
+    alignItems: "center",
+  },
+  projectOverview: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 15,
+    padding: 50,
+    width: "100%",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  projectOverviewTitle: {
+    color: "#4C1D95",
+    fontSize: 20,
+    fontWeight: "700",
+  },
+  projectOverviewText: {
+    color: "#6B7280",
+    fontSize: 14,
+    marginTop: 6,
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  scrollArea: {
     flex: 1,
-    justifyContent: "flex-end",
-    alignItems: "flex-end",
+    backgroundColor: "#3B0764",
+  },
+  scrollContainer: {
     padding: 20,
   },
-  displayText: {
-    color: "white",
-    fontSize: 64,
+  subtitleText: {
+    color: "#E9D5FF",
+    fontSize: 16,
+    fontWeight: "500",
+    marginBottom: 20,
+    textAlign: "center",
   },
-  buttons: {
+  grid: {
+    justifyContent: "space-between",
+  },
+  cardWrapper: {
+    marginBottom: 16,
+  },
+  card: {
+    backgroundColor: "#FFF",
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  cardHeader: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "center",
-    paddingBottom: 20,
-  },
-  button: {
-    width: buttonSize,
-    height: buttonSize,
-    borderRadius: buttonSize / 2,
-    backgroundColor: "gray", // gris pour les chiffres
-    justifyContent: "center",
+    justifyContent: "space-between",
     alignItems: "center",
-    margin: 7,
+    marginBottom: 10,
   },
-  buttonText: {
+  cardTitle: {
+    fontSize: 14,
+    color: "#374151",
+    fontWeight: "600",
+  },
+  cardIcon: {
+    fontSize: 18,
+  },
+  cardValueRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    marginBottom: 4,
+  },
+  cardValue: {
     fontSize: 28,
-    color: "black", // texte noir sur fond gris/jaune
-    fontWeight: "bold",
+    fontWeight: "700",
   },
-  btnOp: {
-    backgroundColor: "yellow", // opérateurs en jaune
+  cardPercentage: {
+    fontSize: 16,
+    color: "#6B7280",
+    marginLeft: 4,
   },
-  btnClear: {
-    backgroundColor: "yellow", // AC jaune
+  cardSubtitle: {
+    fontSize: 12,
+    color: "#6B7280",
+    marginBottom: 6,
   },
-  btnEqual: {
-    backgroundColor: "yellow", // = jaune
+  badge: {
+    alignSelf: "flex-start",
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  badgeText: {
+    fontWeight: "700",
+    fontSize: 12,
   },
 });
