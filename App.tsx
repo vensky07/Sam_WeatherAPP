@@ -7,11 +7,7 @@ import {
   TouchableOpacity,
   ScrollView,
 } from "react-native";
-import {
-  FontAwesome5,
-  Ionicons,
-  Feather,
-} from "@expo/vector-icons";
+import { FontAwesome5, Ionicons, Feather } from "@expo/vector-icons";
 import axios from "axios";
 
 const API_KEY = "3bc9ec07f94c4413972224220250509";
@@ -24,61 +20,55 @@ export default function WeatherApp() {
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  /** Fetch Weather Data */
   const fetchWeather = async () => {
     try {
       setLoading(true);
       setRefreshing(true);
 
-      const { data } = await axios.get(
+      const response = await axios.get(
         `https://api.weatherapi.com/v1/forecast.json?key=${API_KEY}&q=${CITY}&days=1&aqi=no&alerts=no`
       );
 
-      setWeather(data);
+      setWeather(response.data);
       setLastUpdated(new Date());
       setError(null);
     } catch {
-      setError("Failed to load weather data");
+      setError("Impossible de charger les données météo");
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
-  /** Fetch data once on mount */
   useEffect(() => {
     fetchWeather();
   }, []);
 
-  /** Loading State */
   if (loading)
     return (
-      <CenteredView>
+      <View style={styles.center}>
         <ActivityIndicator size="large" color="#8b5cf6" />
-        <Text style={styles.loadingText}>Loading weather data...</Text>
-      </CenteredView>
+        <Text style={styles.loadingText}>Chargement des données météo...</Text>
+      </View>
     );
 
-  /** Error State */
   if (error)
     return (
-      <CenteredView>
+      <View style={styles.center}>
         <Text style={styles.error}>{error}</Text>
-        <RefreshButton onPress={fetchWeather} text="Try Again" />
-      </CenteredView>
+        <RefreshButton onPress={fetchWeather} text="Réessayer" />
+      </View>
     );
 
-  /** Destructure Data */
   const { current, forecast } = weather;
   const { day, astro } = forecast.forecastday[0];
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
-      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.city}>Port-au-Prince, HT</Text>
         <Text style={styles.time}>
-          As of{" "}
+          Mis à jour à{" "}
           {lastUpdated?.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} EDT
         </Text>
 
@@ -91,30 +81,27 @@ export default function WeatherApp() {
 
         <View style={styles.highLowRow}>
           <Text style={styles.highLow}>
-            Day {Math.round(day.maxtemp_f)}° • Night {Math.round(day.mintemp_f)}°
+            Jour {Math.round(day.maxtemp_f)}° • Nuit {Math.round(day.mintemp_f)}°
           </Text>
-          <AlertBadge text="RIP CURRENT STATE... +1 MORE" />
+          <AlertBadge text="Avertissement météo actif" />
         </View>
       </View>
 
-      {/* Main Content */}
       <View style={styles.content}>
-        <Text style={styles.sectionTitle}>Weather Today in Port-au-Prince, HT</Text>
+        <Text style={styles.sectionTitle}>Météo aujourd'hui à Port-au-Prince</Text>
 
         <FeelsLike temp={current.feelslike_f} />
-
         <SunTimes sunrise={astro.sunrise} sunset={astro.sunset} />
 
-        {/* Info Grid */}
         <View style={styles.grid}>
-          <WeatherItem icon="thermometer-half" label="High / Low" value={`${Math.round(day.maxtemp_f)}° / ${Math.round(day.mintemp_f)}°`} />
-          <WeatherItem icon="wind" label="Wind" value={`↑ ${current.wind_mph} mph`} />
-          <WeatherItem icon="tint" label="Humidity" value={`${current.humidity}%`} />
-          <WeatherItem icon="thermometer-quarter" label="Dew Point" value={`${Math.round(current.dewpoint_f)}°`} />
-          <WeatherItem icon="weight-hanging" label="Pressure" value={`${current.pressure_in} in`} />
-          <WeatherItem icon="sun" label="UV Index" value={`${current.uv} of 11`} />
-          <WeatherItem icon="eye" label="Visibility" value={`${current.vis_miles} mi`} />
-          <WeatherItem icon="moon" label="Moon Phase" value={astro.moon_phase} />
+          <WeatherItem icon="thermometer-half" label="Max / Min" value={`${Math.round(day.maxtemp_f)}° / ${Math.round(day.mintemp_f)}°`} />
+          <WeatherItem icon="wind" label="Vent" value={`↑ ${current.wind_mph} mph`} />
+          <WeatherItem icon="tint" label="Humidité" value={`${current.humidity}%`} />
+          <WeatherItem icon="thermometer-quarter" label="Point de rosée" value={`${Math.round(current.dewpoint_f)}°`} />
+          <WeatherItem icon="weight-hanging" label="Pression" value={`${current.pressure_in} in`} />
+          <WeatherItem icon="sun" label="Indice UV" value={`${current.uv} / 11`} />
+          <WeatherItem icon="eye" label="Visibilité" value={`${current.vis_miles} mi`} />
+          <WeatherItem icon="moon" label="Phase lunaire" value={astro.moon_phase} />
         </View>
 
         <RefreshButton onPress={fetchWeather} refreshing={refreshing} />
@@ -122,12 +109,6 @@ export default function WeatherApp() {
     </ScrollView>
   );
 }
-
-/** --- Small Reusable Components --- **/
-
-const CenteredView = ({ children }: any) => (
-  <View style={styles.center}>{children}</View>
-);
 
 const WeatherItem = ({ icon, label, value }: any) => (
   <View style={styles.item}>
@@ -139,12 +120,12 @@ const WeatherItem = ({ icon, label, value }: any) => (
   </View>
 );
 
-const RefreshButton = ({ onPress, refreshing = false, text = "Refresh Data" }: any) => (
+const RefreshButton = ({ onPress, refreshing = false, text = "Actualiser" }: any) => (
   <TouchableOpacity style={styles.refreshBtn} onPress={onPress}>
     {refreshing ? (
       <>
         <ActivityIndicator size="small" color="#fff" />
-        <Text style={styles.refreshText}>Refreshing...</Text>
+        <Text style={styles.refreshText}>Actualisation...</Text>
       </>
     ) : (
       <>
@@ -164,7 +145,7 @@ const AlertBadge = ({ text }: any) => (
 
 const FeelsLike = ({ temp }: any) => (
   <View style={styles.feelsSection}>
-    <Text style={styles.feelsLabel}>Feels Like</Text>
+    <Text style={styles.feelsLabel}>Température ressentie</Text>
     <Text style={styles.feelsTemp}>{Math.round(temp)}°</Text>
   </View>
 );
@@ -182,8 +163,6 @@ const SunItem = ({ icon, text }: any) => (
     <Text style={styles.sunText}>{text}</Text>
   </View>
 );
-
-/** --- Styles --- **/
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f8fafc" },
