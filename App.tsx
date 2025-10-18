@@ -1,353 +1,252 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
+  ActivityIndicator,
   TouchableOpacity,
-  useWindowDimensions,
+  ScrollView,
 } from "react-native";
+import {
+  FontAwesome5,
+  Ionicons,
+  Feather,
+} from "@expo/vector-icons";
+import axios from "axios";
 
-type MetricCardProps = {
-  title: string;
-  value: string;
-  subtitle?: string;
-  status?: "success" | "warning" | "error" | "neutral" | "info";
-  showBadge?: boolean;
-  badgeText?: string;
-  percentage?: number | null;
-};
+const API_KEY = "3bc9ec07f94c4413972224220250509";
+const CITY = "Port-au-Prince";
 
-const MetricCard = ({
-  title,
-  value,
-  subtitle,
-  status = "neutral",
-  showBadge = false,
-  badgeText = "",
-  percentage = null,
-}: MetricCardProps) => {
-  const getStatusColor = () => {
-    switch (status) {
-      case "success":
-        return "#22C55E";
-      case "warning":
-        return "#EAB308";
-      case "error":
-        return "#EF4444";
-      default:
-        return "#6B7280";
+export default function WeatherApp() {
+  const [weather, setWeather] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  /** Fetch Weather Data */
+  const fetchWeather = async () => {
+    try {
+      setLoading(true);
+      setRefreshing(true);
+
+      const { data } = await axios.get(
+        `https://api.weatherapi.com/v1/forecast.json?key=${API_KEY}&q=${CITY}&days=1&aqi=no&alerts=no`
+      );
+
+      setWeather(data);
+      setLastUpdated(new Date());
+      setError(null);
+    } catch {
+      setError("Failed to load weather data");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  const getStatusEmoji = () => {
-    switch (status) {
-      case "success":
-        return "✔";
-      case "warning":
-        return "⚠";
-      case "error":
-        return "✖";
-      case "info":
-        return "ℹ";
-      default:
-        return "●";
-    }
-  };
+  /** Fetch data once on mount */
+  useEffect(() => {
+    fetchWeather();
+  }, []);
+
+  /** Loading State */
+  if (loading)
+    return (
+      <CenteredView>
+        <ActivityIndicator size="large" color="#8b5cf6" />
+        <Text style={styles.loadingText}>Loading weather data...</Text>
+      </CenteredView>
+    );
+
+  /** Error State */
+  if (error)
+    return (
+      <CenteredView>
+        <Text style={styles.error}>{error}</Text>
+        <RefreshButton onPress={fetchWeather} text="Try Again" />
+      </CenteredView>
+    );
+
+  /** Destructure Data */
+  const { current, forecast } = weather;
+  const { day, astro } = forecast.forecastday[0];
 
   return (
-    <TouchableOpacity
-      activeOpacity={0.9}
-      style={[styles.card, { borderColor: getStatusColor() }]}
-    >
-      <View style={styles.cardHeader}>
-        <Text style={styles.cardTitle}>{title}</Text>
-        <Text style={[styles.cardIcon, { color: getStatusColor() }]}>
-          {getStatusEmoji()}
-        </Text>
-      </View>
-
-      <View style={styles.cardValueRow}>
-        <Text style={[styles.cardValue, { color: getStatusColor() }]}>
-          {value}
-        </Text>
-        {percentage !== null && (
-          <Text style={styles.cardPercentage}>{percentage}%</Text>
-        )}
-      </View>
-
-      {subtitle && <Text style={styles.cardSubtitle}>{subtitle}</Text>}
-
-      {showBadge && badgeText && (
-        <View
-          style={[
-            styles.badge,
-            {
-              backgroundColor: `${getStatusColor()}20`,
-              borderColor: getStatusColor(),
-            },
-          ]}
-        >
-          <Text style={[styles.badgeText, { color: getStatusColor() }]}>
-            {badgeText}
-          </Text>
-        </View>
-      )}
-    </TouchableOpacity>
-  );
-};
-
-export default function App() {
-  const { width } = useWindowDimensions();
-
-  const metrics = [
-    {
-      title: "Security",
-      value: "0",
-      subtitle: "Open issues",
-      status: "success",
-      showBadge: true,
-      badgeText: "A",
-    },
-    {
-      title: "Reliability",
-      value: "0",
-      subtitle: "Open issues",
-      status: "success",
-      showBadge: true,
-      badgeText: "A",
-    },
-    {
-      title: "Maintainability",
-      value: "1",
-      subtitle: "Open issues",
-      status: "success",
-      showBadge: true,
-      badgeText: "A",
-    },
-    {
-      title: "Accepted issues",
-      value: "0",
-      subtitle: "Valid issues that were not fixed",
-      status: "neutral",
-    },
-    {
-      title: "Coverage",
-      value: "97.1",
-      subtitle: "On 552 lines to cover",
-      status: "success",
-    },
-    {
-      title: "Duplications",
-      value: "0.0",
-      subtitle: "On 27 lines",
-      status: "success",
-    },
-  ];
-
-  const numCols = width > 600 ? 2 : 1;
-  const padding = 20 * 2;
-  const spacing = 16 * (numCols - 1);
-  const cardWidth = (width - padding - spacing) / numCols;
-
-  return (
-    <View style={styles.mainContainer}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+      {/* Header */}
       <View style={styles.header}>
-        <View style={styles.logoContainer}>
-          <View style={styles.logoCircleOuter}>
-            <View style={styles.logoCircleInner}>
-              <Text style={styles.logoLetter}>S</Text>
-            </View>
-          </View>
-          <Text style={styles.logoText}>Sonar</Text>
-        </View>
-      </View>
-
-      <View style={styles.projectOverviewWrapper}>
-        <View style={styles.projectOverview}>
-          <Text style={styles.projectOverviewTitle}>PROJECT OVERVIEW</Text>
-          <Text style={styles.projectOverviewText}>
-          
-          </Text>
-        </View>
-      </View>
-
-      <ScrollView
-        style={styles.scrollArea}
-        contentContainerStyle={styles.scrollContainer}
-        showsVerticalScrollIndicator={false}
-      >
-        <Text style={styles.subtitleText}>
-          Resulting in more secure, reliable, and maintainable software
+        <Text style={styles.city}>Port-au-Prince, HT</Text>
+        <Text style={styles.time}>
+          As of{" "}
+          {lastUpdated?.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} EDT
         </Text>
 
-        <View
-          style={[
-            styles.grid,
-            {
-              flexDirection: numCols === 1 ? "column" : "row",
-              flexWrap: "wrap",
-            },
-          ]}
-        >
-          {metrics.map((metric, index) => (
-            <View key={index} style={[styles.cardWrapper, { width: cardWidth }]}>
-              <MetricCard {...(metric as MetricCardProps)} />
-            </View>
-          ))}
+        <View style={styles.tempRow}>
+          <Text style={styles.temp}>{Math.round(current.temp_f)}°</Text>
+          <FontAwesome5 name="cloud-sun" size={52} color="white" />
         </View>
-      </ScrollView>
-    </View>
+
+        <Text style={styles.condition}>{current.condition.text}</Text>
+
+        <View style={styles.highLowRow}>
+          <Text style={styles.highLow}>
+            Day {Math.round(day.maxtemp_f)}° • Night {Math.round(day.mintemp_f)}°
+          </Text>
+          <AlertBadge text="RIP CURRENT STATE... +1 MORE" />
+        </View>
+      </View>
+
+      {/* Main Content */}
+      <View style={styles.content}>
+        <Text style={styles.sectionTitle}>Weather Today in Port-au-Prince, HT</Text>
+
+        <FeelsLike temp={current.feelslike_f} />
+
+        <SunTimes sunrise={astro.sunrise} sunset={astro.sunset} />
+
+        {/* Info Grid */}
+        <View style={styles.grid}>
+          <WeatherItem icon="thermometer-half" label="High / Low" value={`${Math.round(day.maxtemp_f)}° / ${Math.round(day.mintemp_f)}°`} />
+          <WeatherItem icon="wind" label="Wind" value={`↑ ${current.wind_mph} mph`} />
+          <WeatherItem icon="tint" label="Humidity" value={`${current.humidity}%`} />
+          <WeatherItem icon="thermometer-quarter" label="Dew Point" value={`${Math.round(current.dewpoint_f)}°`} />
+          <WeatherItem icon="weight-hanging" label="Pressure" value={`${current.pressure_in} in`} />
+          <WeatherItem icon="sun" label="UV Index" value={`${current.uv} of 11`} />
+          <WeatherItem icon="eye" label="Visibility" value={`${current.vis_miles} mi`} />
+          <WeatherItem icon="moon" label="Moon Phase" value={astro.moon_phase} />
+        </View>
+
+        <RefreshButton onPress={fetchWeather} refreshing={refreshing} />
+      </View>
+    </ScrollView>
   );
 }
 
+/** --- Small Reusable Components --- **/
+
+const CenteredView = ({ children }: any) => (
+  <View style={styles.center}>{children}</View>
+);
+
+const WeatherItem = ({ icon, label, value }: any) => (
+  <View style={styles.item}>
+    <View style={styles.labelRow}>
+      <FontAwesome5 name={icon} size={16} color="#64748b" />
+      <Text style={styles.label}>{label}</Text>
+    </View>
+    <Text style={styles.value}>{value}</Text>
+  </View>
+);
+
+const RefreshButton = ({ onPress, refreshing = false, text = "Refresh Data" }: any) => (
+  <TouchableOpacity style={styles.refreshBtn} onPress={onPress}>
+    {refreshing ? (
+      <>
+        <ActivityIndicator size="small" color="#fff" />
+        <Text style={styles.refreshText}>Refreshing...</Text>
+      </>
+    ) : (
+      <>
+        <Ionicons name="refresh" size={18} color="#fff" />
+        <Text style={styles.refreshText}>{text}</Text>
+      </>
+    )}
+  </TouchableOpacity>
+);
+
+const AlertBadge = ({ text }: any) => (
+  <View style={styles.alertBadge}>
+    <View style={styles.dot} />
+    <Text style={styles.alertText}>{text}</Text>
+  </View>
+);
+
+const FeelsLike = ({ temp }: any) => (
+  <View style={styles.feelsSection}>
+    <Text style={styles.feelsLabel}>Feels Like</Text>
+    <Text style={styles.feelsTemp}>{Math.round(temp)}°</Text>
+  </View>
+);
+
+const SunTimes = ({ sunrise, sunset }: any) => (
+  <View style={styles.sunRow}>
+    <SunItem icon="sunrise" text={sunrise} />
+    <SunItem icon="sunset" text={sunset} />
+  </View>
+);
+
+const SunItem = ({ icon, text }: any) => (
+  <View style={styles.sunItem}>
+    <Feather name={icon} size={20} color="#f59e0b" />
+    <Text style={styles.sunText}>{text}</Text>
+  </View>
+);
+
+/** --- Styles --- **/
+
 const styles = StyleSheet.create({
-  mainContainer: {
-    flex: 1,
-    backgroundColor: "#3B0764",
-  },
+  container: { flex: 1, backgroundColor: "#f8fafc" },
+  scrollContent: { paddingBottom: 50 },
   header: {
-    backgroundColor: "#3B0764",
-    paddingHorizontal: 20,
-    paddingTop: 50,
-    paddingBottom: 12,
-    alignItems: "flex-start",
-    borderBottomColor: "#5B21B6",
-    borderBottomWidth: 0.5,
+    backgroundColor: "#4b5563",
+    padding: 24,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
   },
-  logoContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  logoCircleOuter: {
-    width: 48,
-    height: 48,
-    backgroundColor: "#FFF",
-    borderRadius: 24,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  logoCircleInner: {
-    width: 28,
-    height: 28,
-    backgroundColor: "#9333EA",
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  logoLetter: {
-    color: "#FFF",
-    fontWeight: "bold",
-    fontSize: 14,
-  },
-  logoText: {
-    color: "#FFF",
-    fontSize: 22,
-    fontWeight: "600",
-  },
-  projectOverviewWrapper: {
-    backgroundColor: "#3B0764",
-    padding: 5,
-    alignItems: "center",
-  },
-  projectOverview: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 15,
-    padding: 50,
-    width: "100%",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.12,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  projectOverviewTitle: {
-    color: "#4C1D95",
-    fontSize: 20,
-    fontWeight: "700",
-  },
-  projectOverviewText: {
-    color: "#6B7280",
-    fontSize: 14,
-    marginTop: 6,
-    textAlign: "center",
-    lineHeight: 20,
-  },
-  scrollArea: {
-    flex: 1,
-    backgroundColor: "#3B0764",
-  },
-  scrollContainer: {
-    padding: 20,
-  },
-  subtitleText: {
-    color: "#E9D5FF",
-    fontSize: 16,
-    fontWeight: "500",
-    marginBottom: 20,
-    textAlign: "center",
-  },
-  grid: {
-    justifyContent: "space-between",
-  },
-  cardWrapper: {
-    marginBottom: 16,
-  },
-  card: {
-    backgroundColor: "#FFF",
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  cardHeader: {
+  city: { color: "white", fontSize: 22, fontWeight: "700" },
+  time: { color: "#e5e7eb", marginBottom: 10 },
+  tempRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  temp: { color: "white", fontSize: 64, fontWeight: "300" },
+  condition: { color: "#f3f4f6", fontSize: 18, marginTop: 8 },
+  highLowRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
+    marginTop: 10,
   },
-  cardTitle: {
-    fontSize: 14,
-    color: "#374151",
-    fontWeight: "600",
-  },
-  cardIcon: {
-    fontSize: 18,
-  },
-  cardValueRow: {
+  highLow: { color: "#d1d5db", fontSize: 16 },
+  alertBadge: {
+    backgroundColor: "#64748b",
     flexDirection: "row",
-    alignItems: "baseline",
-    marginBottom: 4,
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
   },
-  cardValue: {
-    fontSize: 28,
-    fontWeight: "700",
+  dot: { width: 6, height: 6, backgroundColor: "white", borderRadius: 3, marginRight: 6 },
+  alertText: { color: "white", fontSize: 12, fontWeight: "600" },
+  content: { padding: 24 },
+  sectionTitle: { fontSize: 18, fontWeight: "600", marginBottom: 20 },
+  feelsSection: { alignItems: "center", marginBottom: 20 },
+  feelsLabel: { color: "#64748b", fontSize: 14 },
+  feelsTemp: { fontSize: 48, fontWeight: "300", color: "#1e293b" },
+  sunRow: { flexDirection: "row", justifyContent: "space-around", marginBottom: 20 },
+  sunItem: { flexDirection: "row", alignItems: "center", gap: 6 },
+  sunText: { color: "#64748b" },
+  grid: { marginTop: 10 },
+  item: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderColor: "#e2e8f0",
   },
-  cardPercentage: {
-    fontSize: 16,
-    color: "#6B7280",
-    marginLeft: 4,
+  labelRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  label: { color: "#64748b", fontSize: 14 },
+  value: { color: "#1e293b", fontSize: 16, fontWeight: "600" },
+  refreshBtn: {
+    backgroundColor: "#8b5cf6",
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 12,
+    borderRadius: 10,
+    marginTop: 24,
+    gap: 8,
   },
-  cardSubtitle: {
-    fontSize: 12,
-    color: "#6B7280",
-    marginBottom: 6,
-  },
-  badge: {
-    alignSelf: "flex-start",
-    borderRadius: 8,
-    borderWidth: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  badgeText: {
-    fontWeight: "700",
-    fontSize: 12,
-  },
+  refreshText: { color: "white", fontWeight: "600", fontSize: 14 },
+  loadingText: { color: "#64748b", marginTop: 10 },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  error: { color: "red", fontSize: 16, marginBottom: 20 },
 });
